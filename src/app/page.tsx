@@ -1,5 +1,7 @@
+'use client'
+
 import Button from '@/components/UI/Button'
 
-export default async function Home() {
+export default function Home() {
   return <Button>Hello</Button>
 }
