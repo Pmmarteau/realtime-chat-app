@@ -4,6 +4,8 @@ import { fetchRedis } from '@/helpers/redis'
 import { addFriendValidator } from '@/lib/validations/add-friends'
 import { getServerSession } from 'next-auth'
 import { z } from 'zod'
+import { pusherServer } from '@/lib/pusher'
+import { toPusherKey } from '@/lib/utils'
 
 export async function POST(req: Request) {
   try {
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
 
     const isAlreadyAdded = (await fetchRedis(
       'sismember',
-      `user:${idToAdd}:incoming_friend_request`,
+      `user:${idToAdd}:incoming_friend_requests`,
       session.user.id
     )) as 0 | 1
 
@@ -51,6 +53,15 @@ export async function POST(req: Request) {
     if (isAlreadyFriend) {
       return new Response('Member is already a friend.', { status: 400 })
     }
+
+    pusherServer.trigger(
+      toPusherKey(`user:${idToAdd}:incoming_friend_requests`),
+      'incoming_friend_requests',
+      {
+        senderId: session.user.id,
+        senderEmail: session.user.email,
+      }
+    )
 
     db.sadd(`user:${idToAdd}:incoming_friend_requests`, session.user.id)
 
